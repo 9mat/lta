@@ -11,6 +11,8 @@ capture: mkdir "${fg_path}"
 
 capture: program drop prepare_daily_rider_by_card_type
 program define prepare_daily_rider_by_card_type
+	syntax, [from(integer 8)] [to(integer 20)]
+
 	local filelist: dir "${ezpath}\newalighting" files "*.dta", respectcase
 
 	clear
@@ -19,14 +21,16 @@ program define prepare_daily_rider_by_card_type
 		append using "${ezpath}\newalighting\\`filename'"
 	}
 
-	keep if hour >= 8 & hour <= 20
+	keep if hour >= `from' & hour <= `to'
 	collapse (sum) tripDuration duration numOfRiders, by(card_type travel_mode date)
-	save D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, replace
+	save D:\Dropbox\work\lta\data\ridersDailyByCardType_`from'to`to'.dta, replace
 end
 
 check_file_exists using D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, run(prepare_daily_rider_by_card_type)
-merge_daily_weather_data
+check_file_exists using D:\Dropbox\work\lta\data\ridersDailyByCardType_6to22.dta, run("prepare_daily_rider_by_card_type, from(6) to(22)")
 
+merge_daily_weather_data
+merge_daily_weather_data, from(6) to(22)
 
 
 capture: program drop plot_env_ts
@@ -435,14 +439,15 @@ end
 local res_note `""the regression for the residuals includes PM 2.5, temperature, humidity, rain level," "day of week, year, month, holiday, weekend holiday and school holiday""'
 capture: program drop plot_res_riders_pm25_avplot
 
-global fg2path "D:\Dropbox\work\lta\src\fg\res_plot_aggregate_ridership_v2"
+// global fg2path "D:\Dropbox\work\lta\src\fg\res_plot_aggregate_ridership_v2"
+global fg2path "D:\Dropbox\work\lta\src\fg\res_plot_aggregate_ridership_v2_6to22"
 capture: mkdir ${fg2path}
 program define plot_res_riders_pm25_avplot
 
 	* total ridership
-	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType_6to22.dta, clear
 	collapse (sum) numOfRiders, by(date)
-	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
+	merge m:1 date using ${tmp}\daily_merge_env_6to22.dta, keep(match master)
 	gen_vars
 	label_vars
 

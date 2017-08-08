@@ -19,12 +19,13 @@ end
 ** prepare weather data
 capture: program drop prepare_daily_weather
 program define prepare_daily_weather
-	use "${envpath}\NUS_hourlyWeather.dta" if hour >=8 & hour <= 20, clear
+	syntax, [from(integer 8)] [to(integer 20)]
+	use "${envpath}\NUS_hourlyWeather.dta" if hour >= `from' & hour <= `to', clear
 	gen  temperature_6to10 = temperature if hour >= 6 & hour <= 10
 	collapse (max) temperature_max = temperature ///
 		(min) temperature_min = temperature ///
 		(mean) temperature temperature_6to10 humidity wind_speed (sum) rainfall, by(date)
-	save "${tmp}\env.dta", replace
+	save "${tmp}\env_`from'to`to'.dta", replace
 end
 
 
@@ -140,21 +141,23 @@ end
 
 capture: program drop prepare_daily_rain
 program define prepare_daily_rain
+	syntax, [from(integer 8)] [to(integer 20)]
 	prepare_hourly_rain
-	keep if hour >= 8 & hour <= 20
+	keep if hour >= `from' & hour <= `to'
 	collapse (sum) rain, by(date Stn)
-	save "${tmp}\rain.dta", replace
+	save "${tmp}\rain_`from'to`to'.dta", replace
 end
 
 
 capture: program drop prepare_average_daily_rain
 program define prepare_average_daily_rain
-	check_file_exists using "${tmp}\rain.dta", run(prepare_daily_rain)
+	syntax, [from(integer 8)] [to(integer 20)]
+	check_file_exists using "${tmp}\rain_`from'to`to'.dta", run("prepare_daily_rain, from(`from') to(`to')")
 	
-	use "${tmp}\rain.dta", clear
+	use "${tmp}\rain_`from'to`to'.dta", clear
 	drop if rain < 0
 	collapse (mean) rain, by(date)
-	save "${tmp}\average_rain.dta", replace
+	save "${tmp}\average_rain_`from'to`to'.dta", replace
 end
 
 
@@ -171,10 +174,11 @@ end
 
 capture: program drop prepare_daily_pm25
 program define prepare_daily_pm25
+	syntax, [from(integer 8)] [to(integer 20)]
 	prepare_hourly_pm25
-	keep if hour >= 8 & hour <= 20
+	keep if hour >= `from' & hour <= `to'
 	collapse (mean) pm25mean, by(date)
-	save "${tmp}\pm25.dta", replace
+	save "${tmp}\pm25_`from'to`to'.dta", replace
 end
 
 
@@ -184,12 +188,13 @@ end
 
 capture: program drop prepare_daily_electricity
 program define prepare_daily_electricity
+	syntax, [from(integer 8)] [to(integer 20)]
 	use date endtime systemdemand using "${datapath}\emaelectricity.dta" , clear
 	gen hour = hh(endtime)
-	keep if hour >= 8 & hour <= 20
+	keep if hour >= `from' & hour <= `to'
 	rename systemdemand electricity
 	collapse (sum) electricity, by(date)
-	save "${tmp}\electricity.dta", replace
+	save "${tmp}\electricity_`from'to`to'.dta", replace
 end
 
 
@@ -258,33 +263,35 @@ end
 
 capture: program drop merge_daily_weather_data
 program define merge_daily_weather_data
+	syntax, [from(integer 8)] [to(integer 20)]
 	check_file_exists using "${tmp}\stn_of_location.dta", run(prepare_location)
 	check_file_exists using "${tmp}\nearest_weatherstn.dta", run(prepare_nearest_weatherstn)
-	check_file_exists using "${tmp}\rain.dta", run(prepare_daily_rain)
-	check_file_exists using "${tmp}\average_rain.dta", run(prepare_average_daily_rain)
+	check_file_exists using "${tmp}\rain_`from'to`to'.dta", run("prepare_daily_rain, from(`from') to(`to')")
+	check_file_exists using "${tmp}\average_rain_`from'to`to'.dta", run("prepare_average_daily_rain, from(`from') to(`to')")
+	check_file_exists using "${tmp}\electricity_`from'to`to'.dta", run("prepare_daily_electricity, from(`from') to(`to')")
 	check_file_exists using "${tmp}\wind.dta", run(prepare_8am_wind)
-	check_file_exists using "${tmp}\env.dta", run(prepare_daily_weather)
-	check_file_exists using "${tmp}\pm25.dta", run(prepare_daily_pm25)
+	check_file_exists using "${tmp}\env_`from'to`to'.dta", run("prepare_daily_weather, from(`from') to(`to')")
+	check_file_exists using "${tmp}\pm25_`from'to`to'.dta", run("prepare_daily_pm25, from(`from') to(`to')")
 	check_file_exists using "${tmp}\fire.dta", run(prepare_daily_fire)
 	
-	use "${tmp}\env.dta", clear
+	use "${tmp}\env_`from'to`to'.dta", clear
 
-	merge m:1 date using "${tmp}\pm25.dta", keep(match master)
+	merge m:1 date using "${tmp}\pm25_`from'to`to'.dta", keep(match master)
 	drop _merge
 
 	merge m:1 date using "${tmp}\fire.dta", keep(match master)
 	drop _merge
 
-	merge m:1 date using "${tmp}\electricity.dta", keep(match master)
+	merge m:1 date using "${tmp}\electricity_`from'to`to'.dta", keep(match master)
 	drop _merge
 
 	merge m:1 date using "${tmp}\wind.dta", keep(match master)
 	drop _merge
 
-	merge m:1 date using "${tmp}\average_rain.dta", keep(match master)
+	merge m:1 date using "${tmp}\average_rain_`from'to`to'.dta", keep(match master)
 	drop _merge
 	
-	save "${tmp}\daily_merge_env.dta", replace
+	save "${tmp}\daily_merge_env_`from'to`to'.dta", replace
 end
 
 
