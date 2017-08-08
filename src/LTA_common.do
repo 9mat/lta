@@ -1,5 +1,5 @@
 global datapath "D:\Dropbox\LTA\Data"
-global envpath "D:\Dropbox\work\data\environment"
+global envpath "D:\Dropbox\work\lta\data\environment"
 global ezpath "H:\ezlink data"
 global tmp "H:\tmp"
 
