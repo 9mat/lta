@@ -2,11 +2,11 @@ set more off
 
 set matsize 2000
 
-do D:\Dropbox\work\script\LTA_common.do
+do D:\Dropbox\work\lta\src\LTA_common.do
 
 global ezpath "H:\ezlink data"
 
-global fg_path D:\Dropbox\work\script\fg\res_plot_aggregate_ridership
+global fg_path D:\Dropbox\work\lta\src\fg\res_plot_aggregate_ridership
 capture: mkdir "${fg_path}"
 
 capture: program drop prepare_daily_rider_by_card_type
@@ -21,10 +21,10 @@ program define prepare_daily_rider_by_card_type
 
 	keep if hour >= 8 & hour <= 20
 	collapse (sum) tripDuration duration numOfRiders, by(card_type travel_mode date)
-	save D:\Dropbox\work\data\ridersDailyByCardType.dta, replace
+	save D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, replace
 end
 
-check_file_exists using D:\Dropbox\work\data\ridersDailyByCardType.dta, run(prepare_daily_rider_by_card_type)
+check_file_exists using D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, run(prepare_daily_rider_by_card_type)
 merge_daily_weather_data
 
 
@@ -57,7 +57,7 @@ end
 
 capture: program drop plot_rider_ts
 program define plot_rider_ts
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	separate numOfRiders, by(travel_mode)
 	drop numOfRiders
 
@@ -80,7 +80,7 @@ end
 capture: program drop plot_res_riders_pm25
 program define plot_res_riders_pm25
 
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
 	gen_vars
 
@@ -117,7 +117,7 @@ end
 
 capture: program drop plot_res_riders_temperature
 program define plot_res_riders_temperature
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
 	gen_vars
 
@@ -152,7 +152,7 @@ end
 capture: program drop plot_res_riders_pm25_bothmode
 program define plot_res_riders_pm25_bothmode
 
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	collapse (sum) numOfRiders, by(date card_type)
 	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
 
@@ -204,7 +204,7 @@ end
 capture: program drop plot_res_trips_pm25
 program define plot_res_trips_pm25
 
-	import delimited D:\Dropbox\work\data\hourly_trip_by_ct_tm.csv, clear 
+	import delimited D:\Dropbox\work\lta\data\hourly_trip_by_ct_tm.csv, clear 
 	rename date datestr
 	gen date = date(datestr, "YMD")
 	collapse (sum) numOfRiders = numoftrips if hour >= 8 & hour <= 20, by(date card_type travel_mode)
@@ -246,7 +246,7 @@ end
 
 capture: program drop plot_res_trips_temperature
 program define plot_res_trips_temperature
-	import delimited D:\Dropbox\work\data\hourly_trip_by_ct_tm.csv, clear 
+	import delimited D:\Dropbox\work\lta\data\hourly_trip_by_ct_tm.csv, clear 
 	rename date datestr
 	gen date = date(datestr, "YMD")
 	collapse (sum) numOfRiders = numoftrips if hour >= 8 & hour <= 20, by(date card_type travel_mode)
@@ -288,7 +288,7 @@ end
 
 capture: program drop plot_aggregate_res_trips_env
 program define plot_aggregate_res_trips_env
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	collapse (sum) numOfRiders, by(date)
 
 	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
@@ -362,7 +362,7 @@ end
 
 capture: program drop plot_aggregate_res_rides_env
 program define plot_aggregate_res_rides_env
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	collapse (sum) numOfRiders, by(date)
 
 	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
@@ -432,15 +432,15 @@ end
 // plot_aggregate_res_trips_env
 // plot_aggregate_res_rides_env
 
-local res_note `""the regression for the residuals includes PM 2.5, temperature, humidity, rain level," "day of week, year*month, holiday, weekend holiday and school holiday""'
+local res_note `""the regression for the residuals includes PM 2.5, temperature, humidity, rain level," "day of week, year, month, holiday, weekend holiday and school holiday""'
 capture: program drop plot_res_riders_pm25_avplot
 
-global fg2path "D:\Dropbox\work\script\fg\res_plot_aggregate_ridership_v2"
+global fg2path "D:\Dropbox\work\lta\src\fg\res_plot_aggregate_ridership_v2"
 capture: mkdir ${fg2path}
 program define plot_res_riders_pm25_avplot
 
 	* total ridership
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	collapse (sum) numOfRiders, by(date)
 	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
 	gen_vars
@@ -471,7 +471,7 @@ program define plot_res_riders_pm25_avplot
 	avplot temperature, title("Residual plot: daily ridership vs. Temperature (obs=day)") subtitle("Off days")
 	graph export ${fg2path}/avplot_rider_temperature_agg_offdays.pdf, replace
 
-	use D:\Dropbox\work\data\ridersDailyByCardType.dta, clear
+	use D:\Dropbox\work\lta\data\ridersDailyByCardType.dta, clear
 	collapse (sum) numOfRiders, by(date card_type)
 	merge m:1 date using ${tmp}\daily_merge_env.dta, keep(match master)
 	gen_vars

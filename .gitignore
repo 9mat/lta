@@ -2,3 +2,6 @@ data/
 auxilary/
 src/fg/
 src/tb/
+src/py/settings.json
+*.pdf
+src/citylinkbus.csv
